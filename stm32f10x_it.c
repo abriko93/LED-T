@@ -138,21 +138,6 @@ void PendSV_Handler(void)
   * @param  None
   * @retval None
   */
-void SysTick_Handler(void)
-{
-  //≈сли переменна€ LED_timer еще не дошла до 0,
-  if (LED_timer)
-	{
-	//ѕровер€ем ее значение, если оно больше 1500 включим светодиод
-	if (LED_timer>1000) GPIOC->BSRR= GPIO_BSRR_BS9;
-	//иначе если меньше или равно 1500 то выключим
-	else GPIOC->BSRR= GPIO_BSRR_BR9;
-	//ѕроизведем декремент переменной LED_timer
-	LED_timer--;
-	}
-  //≈ли же значение переменной дошло до нул€, зададим новое значение 2000
-  else LED_timer=2000;
-}
 
 /******************************************************************************/
 /*                 STM32F10x Peripherals Interrupt Handlers                   */
