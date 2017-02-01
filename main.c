@@ -10,9 +10,12 @@
 GPIO_InitTypeDef GPIO_InitStructure;
 SPI_InitTypeDef    SPI_InitStructure;
 DMA_InitTypeDef    DMA_InitStructure;
+USART_InitTypeDef USART_InitStructure;
+NVIC_InitTypeDef  NVIC_InitStructure;
 
 __IO uint32_t TimingDelay;
 
+uint16_t ReceivedData;
 uint8_t aTxBuffer[BUFFERSIZE];
 uint8_t LedTxBuffer[BUFFERSIZE];
 uint8_t Byte1 = 0xFC;
@@ -20,21 +23,21 @@ uint8_t Byte0 = 0xC0;
 uint8_t ByteRes = 0x00;
 uint8_t LED_count = 0;
 uint8_t KEY = 0;
-uint8_t GREEN[LEDS] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+uint8_t GREEN[LEDS] = {0xFF,0xFF,0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                              0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                              0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                              0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                              0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
                              0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
-uint8_t BLUE[LEDS]  =  {0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+uint8_t BLUE[LEDS]  =  {0xFF,0x00,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF};
 
-uint8_t RED[LEDS]  = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+uint8_t RED[LEDS]  = {0x00,0xFF,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
                              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -51,6 +54,8 @@ void DMA_LED_STOP(void);
 void New_Led_Data(uint8_t LED_count);
 void Res_Led_Data(void);
 void Delay_ms(__IO uint32_t nTime);
+void USART_Config(void);
+void Send_UART(uint8_t data);
 
 void main(void)
 {
@@ -70,6 +75,8 @@ SysTick_Config(24000000/1000);
 
 DMA_LED_Config();
 
+USART_Config();
+
 //Наш основной бесконечный цикл
 while(1)
 {
@@ -85,20 +92,26 @@ if (KEY == 0)
   GPIOC->BSRR= GPIO_BSRR_BS9;
   DMA_LED_START(); 
 }
+  
+
+Send_UART('O');
+Send_UART('K');
+
+
 }
 }
 
 void RCC_Configuration(void)
 {  
-  /* PCLK2 = HCLK/2 */
-  //RCC_PCLK2Config(RCC_HCLK_Div2); 
-
   /* Enable peripheral clocks ------------------------------------------------*/
-  /* Enable DMA1 or/and DMA2 clock */
+  /* Enable DMA1 clock */
   RCC_AHBPeriphClockCmd(SPI_LED_DMA_CLK, ENABLE);
 
   /* Enable SPI_LED clock and GPIO clock for SPI_LED*/
   RCC_APB2PeriphClockCmd(SPI_LED_GPIO_CLK | SPI_LED_CLK, ENABLE);
+  
+  // Включаем тактирование порта А и USART1
+  RCC_APB2PeriphClockCmd(USARTy_GPIO_CLK | USARTy_CLK, ENABLE);
   
   //Разрешаем тактирование шины порта С для мигания светодиодом
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
@@ -118,7 +131,18 @@ void GPIO_Configuration(void)
   GPIO_InitStructure.GPIO_Pin = SPI_LED_PIN_MISO;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
   GPIO_Init(SPI_LED_GPIO, &GPIO_InitStructure);
-
+  
+    /* Configure USARTy Tx as alternate function push-pull */
+  GPIO_InitStructure.GPIO_Pin = USARTy_TxPin;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
+  GPIO_Init(USARTy_GPIO, &GPIO_InitStructure);
+  /* Configure USARTy Rx as input floating */
+  GPIO_InitStructure.GPIO_Pin = USARTy_RxPin;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+  GPIO_Init(USARTy_GPIO, &GPIO_InitStructure);
+  
   /* Запишем в поле GPIO_Pin структуры GPIO_Init_struct номер вывода порта, который мы будем настраивать далее */
   GPIO_InitStructure.GPIO_Pin  = GPIO_Pin_9;
   // Подобным образом заполним поля GPIO_Speed и GPIO_Mode
@@ -285,4 +309,61 @@ void SysTick_Handler(void)
   { 
     TimingDelay--;
   }
+}
+
+void USART_Config(void)
+{
+/* USARTy configuration ------------------------------------------------------*/
+  /* USARTy configured as follow:
+        - BaudRate = 115200 baud  
+        - Word Length = 8 Bits
+        - One Stop Bit
+        - No parity
+        - Hardware flow control disabled (RTS and CTS signals)
+        - Receive and transmit enabled
+  */
+  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No ;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  
+  NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+  
+  USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);  /* Enable Receive interrupts */
+
+      /* Configure the USARTy */
+  USART_Init(USARTy, &USART_InitStructure);
+  /* Enable the USARTy */
+  USART_Cmd(USARTy, ENABLE);
+  
+}
+
+void Send_UART(uint8_t data)
+{
+  USART_SendData(USARTy, data);
+  while(USART_GetFlagStatus(USARTy, USART_FLAG_TXE) == RESET)
+  {
+  }
+}
+
+void USART1_IRQHandler(void)
+{
+        //Receive Data register not empty interrupt
+        if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
+   {
+           USART_ClearITPendingBit(USART1, USART_IT_RXNE);
+//       tmp=USART_ReceiveData (USART1)
+   }
+        //Transmission complete interrupt
+        if(USART_GetITStatus(USART1, USART_IT_TC) != RESET)
+        {
+                USART_ClearITPendingBit(USART1, USART_IT_TC);
+//                tx_end=1;
+        }
 }

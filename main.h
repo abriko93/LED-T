@@ -27,8 +27,13 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-/* Uncomment the line corresponding to the STMicroelectronics evaluation board
-   used to run the example */
+
+  #define USARTy                   USART1
+  #define USARTy_GPIO              GPIOA
+  #define USARTy_CLK               RCC_APB2Periph_USART1
+  #define USARTy_GPIO_CLK          RCC_APB2Periph_GPIOA
+  #define USARTy_RxPin             GPIO_Pin_10
+  #define USARTy_TxPin             GPIO_Pin_9
 
   #define SPI_LED                   SPI1
   #define SPI_LED_CLK               RCC_APB2Periph_SPI1
