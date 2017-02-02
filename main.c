@@ -2,6 +2,7 @@
 #include "stm32f10x_conf.h"
 
 #include "main.h"
+#include "Queue_Array.h"
 
 #define BUFFERSIZE                       24
 #define LEDSNUMBER                       54
@@ -14,6 +15,10 @@ USART_InitTypeDef USART_InitStructure;
 NVIC_InitTypeDef  NVIC_InitStructure;
 
 __IO uint32_t TimingDelay;
+
+//Переменные очереди
+QueueArray rawData;
+queueArrayBaseType rawBase;
 
 uint16_t ReceivedData;
 uint8_t aTxBuffer[BUFFERSIZE];
@@ -53,6 +58,7 @@ void DMA_LED_START(void);
 void DMA_LED_STOP(void);
 void New_Led_Data(uint8_t LED_count);
 void Res_Led_Data(void);
+void Turn_Led_Off(void);
 void Delay_ms(__IO uint32_t nTime);
 void USART_Config(void);
 void Send_UART(uint8_t data);
@@ -77,11 +83,36 @@ DMA_LED_Config();
 
 USART_Config();
 
+Turn_Led_Off();
+
 //Наш основной бесконечный цикл
 while(1)
 {
-//Все управление светодиодом происходит в прерываниях
+if (lenQueueArray(&rawData) > LEDSNUMBER*3+1)
+    {
+      //if (isBusyQueueArray(&rawData) != 1)
+      {
+        getQueueArray(&rawData, &rawBase);
+        if (rawBase == 'S')
+        {
+          for (uint8_t bytecount = 0; bytecount < LEDSNUMBER*3; bytecount++)
+          {
+            getQueueArray(&rawData, &GREEN[bytecount]);
+            getQueueArray(&rawData, &RED[bytecount]);
+            getQueueArray(&rawData, &BLUE[bytecount]);
+          }
+          
+          GPIOC->BSRR= GPIO_BSRR_BR9;
+          DMA_LED_START();
+          Delay_ms(1);
+          GPIOC->BSRR= GPIO_BSRR_BS9;
+        }
+      }
+    }
   
+  
+  
+  /*
 if (KEY == 0)
 {
   Delay_ms(1);
@@ -90,13 +121,9 @@ if (KEY == 0)
   Delay_ms(100);
   KEY = 1;
   GPIOC->BSRR= GPIO_BSRR_BS9;
-  DMA_LED_START(); 
+  //DMA_LED_START(); 
 }
-  
-
-Send_UART('O');
-Send_UART('K');
-
+*/
 
 }
 }
@@ -186,9 +213,16 @@ void DMA_LED_Config(void)
   
   DMA_Init(SPI_LED_Tx_DMA_Channel, &DMA_InitStructure);
  
+  
+  //NVIC_EnableIRQ(DMA1_Channel3_IRQn);
+  NVIC_InitStructure.NVIC_IRQChannel = DMA1_Channel3_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 4;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+  
   DMA_ITConfig(SPI_LED_Tx_DMA_Channel, DMA_IT_TC, ENABLE);
   //DMA_ITConfig(SPI_LED_Tx_DMA_Channel, DMA_IT_HT, ENABLE);
-  NVIC_EnableIRQ(DMA1_Channel3_IRQn);
   
     /* Enable SPI_LED DMA Tx request */
   SPI_I2S_DMACmd(SPI_LED, SPI_I2S_DMAReq_Tx, ENABLE);
@@ -236,8 +270,11 @@ void DMA1_Channel3_IRQHandler()
           LED_count=0;
           //DMA_LED_START();
           DMA_LED_STOP();
-          KEY = 0;
+          //KEY = 0;
           Res_Led_Data();
+          
+          Send_UART('O');
+          Send_UART('K');
 
       }
     } 
@@ -297,6 +334,17 @@ void Res_Led_Data(void)
        }
 }
 
+void Turn_Led_Off(void)
+{
+   for (uint32_t bytecount = 0; bytecount < LEDSNUMBER; bytecount++)
+          {
+            GREEN[bytecount]=0;
+            RED[bytecount]=0;
+            BLUE[bytecount]=0;
+          }
+   DMA_LED_START();
+}
+
 void Delay_ms(__IO uint32_t nTime)
 { 
   TimingDelay = nTime;
@@ -322,7 +370,7 @@ void USART_Config(void)
         - Hardware flow control disabled (RTS and CTS signals)
         - Receive and transmit enabled
   */
-  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_BaudRate = 9600;
   USART_InitStructure.USART_WordLength = USART_WordLength_8b;
   USART_InitStructure.USART_StopBits = USART_StopBits_1;
   USART_InitStructure.USART_Parity = USART_Parity_No ;
@@ -336,6 +384,7 @@ void USART_Config(void)
   NVIC_Init(&NVIC_InitStructure);
   
   USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);  /* Enable Receive interrupts */
+  //USART_ITConfig(USART1, USART_IT_TC, ENABLE);  /* Enable Transmit interrupts */
 
       /* Configure the USARTy */
   USART_Init(USARTy, &USART_InitStructure);
@@ -346,9 +395,11 @@ void USART_Config(void)
 
 void Send_UART(uint8_t data)
 {
+  uint32_t counter = 0;
   USART_SendData(USARTy, data);
-  while(USART_GetFlagStatus(USARTy, USART_FLAG_TXE) == RESET)
+  while((USART_GetFlagStatus(USARTy, USART_FLAG_TXE) == RESET) && (counter<100000))
   {
+    counter++;
   }
 }
 
@@ -358,12 +409,6 @@ void USART1_IRQHandler(void)
         if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)
    {
            USART_ClearITPendingBit(USART1, USART_IT_RXNE);
-//       tmp=USART_ReceiveData (USART1)
+           putQueueArray(&rawData, USART_ReceiveData(USART1));
    }
-        //Transmission complete interrupt
-        if(USART_GetITStatus(USART1, USART_IT_TC) != RESET)
-        {
-                USART_ClearITPendingBit(USART1, USART_IT_TC);
-//                tx_end=1;
-        }
 }

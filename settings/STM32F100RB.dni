@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=2137211579
+Checksum=-290925899
 [Stack]
 FillEnabled=0
 OverflowWarningsEnabled=1
@@ -64,9 +64,7 @@ Bp0=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\..\..\..\WINDOWS\System32}.1076.1" 0 0 1 "" 
 Bp1=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.35.1" 0 0 1 "" 0 "" 0
 Bp2=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.44.3" 0 0 1 "" 0 "" 0
 Bp3=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.46.3" 0 0 1 "" 0 "" 0
-Bp4=_ 1 "EMUL_CODE" "{$PROJ_DIR$\main.c}.358.9" 0 0 1 "" 0 "" 0
-Bp5=_ 1 "EMUL_CODE" "{$PROJ_DIR$\main.c}.364.9" 0 0 1 "" 0 "" 0
-Count=6
+Count=4
 [Aliases]
 Count=0
 SuppressDialog=0

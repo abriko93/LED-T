@@ -2164,6 +2164,9 @@
     <name>$PROJ_DIR$\main.c</name>
   </file>
   <file>
+    <name>$PROJ_DIR$\Queue_Array.c</name>
+  </file>
+  <file>
     <name>$PROJ_DIR$\stm32f10x_it.c</name>
   </file>
 </project>
