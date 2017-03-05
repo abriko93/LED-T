@@ -5,17 +5,41 @@
 #include <QIODevice>
 #include <QFile>
 #include <QDebug>
+#include <QGraphicsPixmapItem>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    prepareForm();
 }
 
 MainWindow::~MainWindow()
 {
+    if (pixmap)
+        delete pixmap;
     delete ui;
+}
+
+void MainWindow::prepareForm()
+{
+    ui->graphicsView->setScene(new QGraphicsScene(this));
+
+    ui->imgHeiLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgHeiLineEdt));
+    ui->imgWidthLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgWidthLineEdt));
+
+    configurator.registerConfigurableWidget(ui->fromLineEdit);
+    configurator.registerConfigurableWidget(ui->toLineEdit);
+    configurator.registerConfigurableWidget(ui->imgHeiLineEdt);
+    configurator.registerConfigurableWidget(ui->imgWidthLineEdt);
+
+    connect(ui->fromLineEdit, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
+    connect(ui->imgHeiLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
+    connect(ui->imgWidthLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
+
+    reloadImage();
 }
 
 void MainWindow::setFile(QString title, QLineEdit *edt)
@@ -26,7 +50,8 @@ void MainWindow::setFile(QString title, QLineEdit *edt)
 
 void MainWindow::on_fromToolBtn_clicked()
 {
-    this->setFile("File to convert", this->ui->fromLineEdit);
+    setFile("File to convert", ui->fromLineEdit);
+    reloadImage();
 }
 
 void MainWindow::on_toToolBtn_clicked()
@@ -90,4 +115,41 @@ void MainWindow::on_convertBtn_clicked()
     }
 
     QMessageBox::information(this, "Success!", "Image successfully converted");
+}
+
+void MainWindow::reloadImage()
+{
+    QList<QGraphicsItem *> items = ui->graphicsView->scene()->items();
+    for (QGraphicsItem *item : items)
+    {
+        ui->graphicsView->scene()->removeItem(item);
+    }
+
+    if (pixmap)
+        delete pixmap;
+
+    pixmap = new QGraphicsPixmapItem(QPixmap(ui->fromLineEdit->text()));
+    ui->graphicsView->scene()->addItem(pixmap);
+
+    resizeImage();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    resizeImage();
+}
+
+void MainWindow::resizeImage()
+{
+    QTransform transformation;
+    transformation.scale((qreal)ui->graphicsView->width() / (qreal)pixmap->boundingRect().width(),
+                         (qreal)ui->graphicsView->height() / (qreal)pixmap->boundingRect().height());
+
+    pixmap->setTransform(transformation);
+}
+
+void MainWindow::on_reloadImageNeeded()
+{
+    reloadImage();
 }
