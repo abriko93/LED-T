@@ -43,7 +43,7 @@
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Изображение</string>
+        <string>Превью</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -85,34 +85,40 @@
           <item>
            <widget class="QLabel" name="label_2">
             <property name="text">
-             <string>To</string>
+             <string>Яркость</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="toLineEdit"/>
+           <widget class="QSlider" name="brightnessSlider">
+            <property name="maximum">
+             <number>255</number>
+            </property>
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="invertedControls">
+             <bool>false</bool>
+            </property>
+            <property name="tickInterval">
+             <number>0</number>
+            </property>
+           </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toToolBtn">
+           <widget class="QLabel" name="brightnessLbl">
             <property name="text">
-             <string>...</string>
+             <string>TextLabel</string>
             </property>
            </widget>
           </item>
          </layout>
         </item>
-        <item>
-         <widget class="QPushButton" name="convertBtn">
-          <property name="text">
-           <string>Convert</string>
-          </property>
-         </widget>
-        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tab_2">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>Конвертация</string>
        </attribute>
       </widget>
      </widget>

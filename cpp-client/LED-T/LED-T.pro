@@ -25,9 +25,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    configurator.cpp
+    configurator.cpp \
+    image.cpp \
+    converters.cpp
 
 HEADERS  += mainwindow.h \
-    configurator.h
+    configurator.h \
+    image.h \
+    converters.h
 
 FORMS    += mainwindow.ui

@@ -7,6 +7,8 @@
 #include <QDebug>
 #include <QGraphicsPixmapItem>
 
+#include "converters.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -18,8 +20,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    if (pixmap)
-        delete pixmap;
     delete ui;
 }
 
@@ -31,15 +31,18 @@ void MainWindow::prepareForm()
     ui->imgWidthLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgWidthLineEdt));
 
     configurator.registerConfigurableWidget(ui->fromLineEdit);
-    configurator.registerConfigurableWidget(ui->toLineEdit);
     configurator.registerConfigurableWidget(ui->imgHeiLineEdt);
     configurator.registerConfigurableWidget(ui->imgWidthLineEdt);
+    configurator.registerConfigurableWidget(ui->brightnessSlider);
+
+    ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    reloadImage();
 
     connect(ui->fromLineEdit, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
     connect(ui->imgHeiLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
     connect(ui->imgWidthLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
-
-    reloadImage();
 }
 
 void MainWindow::setFile(QString title, QLineEdit *edt)
@@ -52,11 +55,6 @@ void MainWindow::on_fromToolBtn_clicked()
 {
     setFile("File to convert", ui->fromLineEdit);
     reloadImage();
-}
-
-void MainWindow::on_toToolBtn_clicked()
-{
-    this->setFile("File for converted image", this->ui->toLineEdit);
 }
 
 QString convertImage(QFile &from, QFile &to)
@@ -87,6 +85,7 @@ QString convertImage(QFile &from, QFile &to)
     return "";
 }
 
+/*
 void MainWindow::on_convertBtn_clicked()
 {
     if (this->ui->fromLineEdit->text() == "" || this->ui->toLineEdit->text() == "") {
@@ -116,6 +115,7 @@ void MainWindow::on_convertBtn_clicked()
 
     QMessageBox::information(this, "Success!", "Image successfully converted");
 }
+*/
 
 void MainWindow::reloadImage()
 {
@@ -125,11 +125,35 @@ void MainWindow::reloadImage()
         ui->graphicsView->scene()->removeItem(item);
     }
 
-    if (pixmap)
-        delete pixmap;
+    Image img(QPixmap(ui->fromLineEdit->text()), this);
 
-    pixmap = new QGraphicsPixmapItem(QPixmap(ui->fromLineEdit->text()));
-    ui->graphicsView->scene()->addItem(pixmap);
+    bool ok = false;
+    int w = ui->imgWidthLineEdt->text().toInt(&ok);
+    if (!ok)
+    {
+        qWarning() << "Invalid text found in imgWidth field:" << ui->imgWidthLineEdt->text();
+        return;
+    }
+    img.setWidth(w);
+
+    int h = ui->imgHeiLineEdt->text().toInt(&ok);
+    if (!ok)
+    {
+        qWarning() << "Invalid text found in imgWidth field:" << ui->imgWidthLineEdt->text();
+        return;
+    }
+    img.setHeight(h);
+
+    if (w <= 0 || h <= 0)
+        return;
+
+    img.setBrightness(ui->brightnessSlider->value());
+
+    PixmapConverter converter;
+    convertImage(img, &converter);
+
+    pixmapItem = QSharedPointer<QGraphicsPixmapItem>(new QGraphicsPixmapItem(converter.content()));
+    ui->graphicsView->scene()->addItem(&*pixmapItem);
 
     resizeImage();
 }
@@ -143,13 +167,20 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 void MainWindow::resizeImage()
 {
     QTransform transformation;
-    transformation.scale((qreal)ui->graphicsView->width() / (qreal)pixmap->boundingRect().width(),
-                         (qreal)ui->graphicsView->height() / (qreal)pixmap->boundingRect().height());
+    transformation.scale((qreal)ui->graphicsView->width() / (qreal)pixmapItem->boundingRect().width(),
+                         (qreal)ui->graphicsView->height() / (qreal)pixmapItem->boundingRect().height());
 
-    pixmap->setTransform(transformation);
+    pixmapItem->setTransform(transformation);
+    ui->graphicsView->setSceneRect(ui->graphicsView->rect());
 }
 
 void MainWindow::on_reloadImageNeeded()
 {
+    reloadImage();
+}
+
+void MainWindow::on_brightnessSlider_valueChanged(int value)
+{
+    ui->brightnessLbl->setText(QString::number(value));
     reloadImage();
 }

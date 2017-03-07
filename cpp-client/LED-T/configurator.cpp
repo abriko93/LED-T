@@ -13,14 +13,28 @@ void Configurator::registerConfigurableWidget(QLineEdit *edit)
 {
     connect(edit, SIGNAL(editingFinished()), this, SLOT(onEditChanged()));
     fillField(edit);
+}
 
-    qDebug() << "Registered by configurator widget:" << edit->objectName();
+void Configurator::registerConfigurableWidget(QSlider *slider)
+{
+    connect(slider, SIGNAL(valueChanged(int)), this, SLOT(onSliderValueChanged(int)));
+    fillField(slider);
+}
+
+void Configurator::onSliderValueChanged(int)
+{
+    QSlider *senderObj = qobject_cast<QSlider *>(sender());
+    if (senderObj == NULL)
+    {
+        qWarning() << "Invalid slider found in configurator:" << sender()->objectName();
+        return;
+    }
+
+    storeFieldData(senderObj);
 }
 
 void Configurator::onEditChanged()
 {
-    qDebug() << "Editing finished emitted by" << sender()->objectName();
-
     QLineEdit *senderObj = qobject_cast<QLineEdit *>(sender());
     if (senderObj == NULL)
     {
@@ -31,14 +45,34 @@ void Configurator::onEditChanged()
     storeFieldData(senderObj);
 }
 
-QString getDefaultFieldData(const QObject *obj)
+QString getDefaultFieldDataOptName(const QObject *obj)
 {
     return "defaults/" + obj->objectName();
 }
 
+void Configurator::fillField(QSlider *slider)
+{
+    QVariant data = settings.value(getDefaultFieldDataOptName(slider));
+    if (data.canConvert(QVariant::Int))
+    {
+        int intData = data.toInt();
+
+        if (intData < slider->minimum() || intData > slider->maximum())
+        {
+            qWarning() << "Can't fill slider" << slider->objectName() << ": invalid data: " << intData;
+            return;
+        }
+
+        slider->setValue(intData);
+        slider->valueChanged(intData);
+    } else {
+        qWarning() << "Invalid value found for slider" << slider->objectName() << ":" << data;
+    }
+}
+
 void Configurator::fillField(QLineEdit *edt)
 {
-    QVariant data = settings.value(getDefaultFieldData(edt));
+    QVariant data = settings.value(getDefaultFieldDataOptName(edt));
     if (data.canConvert(QVariant::String))
     {
         QString strData = data.toString();
@@ -60,5 +94,10 @@ void Configurator::fillField(QLineEdit *edt)
 
 void Configurator::storeFieldData(const QLineEdit *edt)
 {
-    settings.setValue(getDefaultFieldData(edt), edt->text());
+    settings.setValue(getDefaultFieldDataOptName(edt), edt->text());
+}
+
+void Configurator::storeFieldData(const QSlider *slider)
+{
+    settings.setValue(getDefaultFieldDataOptName(slider), slider->value());
 }
