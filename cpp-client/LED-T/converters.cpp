@@ -33,6 +33,33 @@ QPixmap PixmapConverter::content() const
     return QPixmap::fromImage(data);
 }
 
+SimpleTextGRBConverter::SimpleTextGRBConverter()
+    : BaseConverter()
+    , stream(new QString) // XXX: Leak ?
+{
+}
+
+void SimpleTextGRBConverter::prepareMetadata(const Image &)
+{
+    stream.reset();
+}
+
+void SimpleTextGRBConverter::convertPixel(const Image &, const QColor &px)
+{
+    stream << px.green() << " " << px.red() << " " << px.blue() << " ";
+}
+
+TextGRBConverterV1::TextGRBConverterV1()
+    : SimpleTextGRBConverter()
+{
+}
+
+void TextGRBConverterV1::prepareMetadata(const Image &img)
+{
+    SimpleTextGRBConverter::prepareMetadata(img);
+    content() << "S ";
+}
+
 void convertImage(const Image &img, BaseConverter *converter)
 {
     converter->prepareMetadata(img);

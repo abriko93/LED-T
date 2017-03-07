@@ -10,7 +10,9 @@ Image::Image(const QPixmap &pixmap, QObject *parent)
 Image::Image(Image const& other)
     : QObject(other.parent())
     , origImage(other.origImage) // transformation will not be copied here
-    , imgBrightness(255)
+    , w(other.w)
+    , h(other.h)
+    , imgBrightness(other.imgBrightness)
 {
 }
 
@@ -38,6 +40,11 @@ colorIterator::colorIterator(const Image *img, bool atEnd)
     {
         i = img->width();
         j = img->height() - 1;
+
+        if (i < 0)
+            i = 0;
+        if (j < 0)
+            j = 0;
     }
 }
 
