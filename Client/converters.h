@@ -3,6 +3,7 @@
 
 #include <QImage>
 #include <QTextStream>
+#include <QSharedPointer>
 
 class Image;
 
@@ -53,6 +54,21 @@ public:
     TextGRBConverterV1();
 
     virtual void prepareMetadata(Image const& image);
+};
+
+class GRBConverterV1 : public BaseConverter
+{
+public:
+    GRBConverterV1();
+
+    virtual void prepareMetadata(Image const& image);
+    virtual void convertPixel(Image const& img, QColor const& px);
+
+    QByteArray const& content() const { return data; }
+
+private:
+    QSharedPointer<QDataStream> stream;
+    QByteArray data;
 };
 
 void convertImage(Image const& img, BaseConverter *converter);

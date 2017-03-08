@@ -72,3 +72,20 @@ void convertImage(const Image &img, BaseConverter *converter)
         converter->convertPixel(img, realColor);
     }
 }
+
+GRBConverterV1::GRBConverterV1()
+    : BaseConverter()
+{}
+
+void GRBConverterV1::prepareMetadata(const Image &)
+{
+    data.clear();
+    stream = QSharedPointer<QDataStream>(new QDataStream(&data, QIODevice::WriteOnly));
+
+    *stream << (quint8)'S';
+}
+
+void GRBConverterV1::convertPixel(const Image &, const QColor &px)
+{
+    *stream << (quint8)px.green() << (quint8)px.red() << (quint8)px.blue();
+}

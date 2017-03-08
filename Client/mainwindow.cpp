@@ -36,6 +36,7 @@ void MainWindow::prepareForm()
     configurator.registerConfigurableWidget(ui->brightnessSlider);
     configurator.registerConfigurableWidget(ui->saveAsImgEdt);
     configurator.registerConfigurableWidget(ui->saveAsTextLineEdt);
+    configurator.registerConfigurableWidget(ui->saveAsBinaryLineEdt);
 
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -178,6 +179,35 @@ void MainWindow::on_saveAsTextBtn_clicked()
 
     QTextStream stream(&file);
     stream << converter.string();
+
+    QMessageBox::information(this, "Success!", "Saved!");
+}
+
+void MainWindow::on_saveAsBinaryToolBtn_clicked()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Save as binary");
+    ui->saveAsBinaryLineEdt->setText(fileName);
+}
+
+void MainWindow::on_saveAsBinaryBtn_clicked()
+{
+    if (ui->saveAsBinaryLineEdt->text() == "")
+    {
+        QMessageBox::warning(this, "Error", "Can't save: empty file name!");
+        return;
+    }
+
+    GRBConverterV1 converter;
+    convertImage(getImage(), &converter);
+
+    QFile file(ui->saveAsBinaryLineEdt->text());
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::critical(this, "Error", "Can't open file `" + file.fileName() + "`: " + file.errorString());
+        return;
+    }
+
+    file.write(converter.content());
 
     QMessageBox::information(this, "Success!", "Saved!");
 }

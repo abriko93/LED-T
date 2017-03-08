@@ -31,6 +31,10 @@ private slots:
 
     void on_saveAsTextBtn_clicked();
 
+    void on_saveAsBinaryToolBtn_clicked();
+
+    void on_saveAsBinaryBtn_clicked();
+
 protected:
     void setFile(QString title, QLineEdit *edt);
     void prepareForm();
