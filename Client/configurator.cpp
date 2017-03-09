@@ -2,6 +2,7 @@
 
 #include <QValidator>
 #include <QtDebug>
+#include <QRadioButton>
 
 Configurator::Configurator(QObject *parent)
     : QObject(parent)
@@ -24,6 +25,16 @@ void Configurator::registerConfigurableWidget(QSlider *slider)
 void Configurator::registerConfigurableWidget(QComboBox *box)
 {
     connect(box, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxValueChanged(int)));
+    fillField(box);
+}
+
+void Configurator::registerConfigurableWidget(QGroupBox *box)
+{
+    for (QRadioButton *btn : box->findChildren<QRadioButton *>())
+    {
+        connect(btn, SIGNAL(clicked(bool)), this, SLOT(onRadioClicked(bool)));
+    }
+
     fillField(box);
 }
 
@@ -51,7 +62,7 @@ void Configurator::onEditChanged()
     storeFieldData(senderObj);
 }
 
-void Configurator::onComboBoxValueChanged(int idx)
+void Configurator::onComboBoxValueChanged(int)
 {
     QComboBox *senderObj = qobject_cast<QComboBox *>(sender());
     if (senderObj == NULL)
@@ -61,6 +72,25 @@ void Configurator::onComboBoxValueChanged(int idx)
     }
 
     storeFieldData(senderObj);
+}
+
+void Configurator::onRadioClicked(bool)
+{
+    QRadioButton *btn = qobject_cast<QRadioButton *>(sender());
+    if (btn == NULL)
+    {
+        qWarning() << "Invalid radio button found:" << sender()->objectName();
+        return;
+    }
+
+    QGroupBox *box = qobject_cast<QGroupBox *>(btn->parent());
+    if (box == NULL)
+    {
+        qWarning() << "Invalid parent for group box" << btn->objectName() << ":" << btn->parent()->objectName();
+        return;
+    }
+
+    storeFieldData(box, btn->text());
 }
 
 QString getDefaultFieldDataOptName(const QObject *obj)
@@ -131,6 +161,27 @@ void Configurator::fillField(QComboBox *box)
     }
 }
 
+void Configurator::fillField(QGroupBox *box)
+{
+    QVariant data = settings.value(getDefaultFieldDataOptName(box));
+    if (!data.isValid())
+        return;
+
+    if (data.canConvert(QVariant::String))
+    {
+        QString strData = data.toString();
+        for (QRadioButton *btn : box->findChildren<QRadioButton *>())
+        {
+            if (btn->text() == strData)
+                btn->setChecked(true);
+            else
+                btn->setChecked(false);
+        }
+    } else {
+        qWarning() << "Can't set" << box->objectName() << "text. Value is " << data;
+    }
+}
+
 void Configurator::storeFieldData(const QLineEdit *edt)
 {
     settings.setValue(getDefaultFieldDataOptName(edt), edt->text());
@@ -144,4 +195,9 @@ void Configurator::storeFieldData(const QSlider *slider)
 void Configurator::storeFieldData(const QComboBox *box)
 {
     settings.setValue(getDefaultFieldDataOptName(box), box->currentText());
+}
+
+void Configurator::storeFieldData(const QGroupBox *box, QString value)
+{
+    settings.setValue(getDefaultFieldDataOptName(box), value);
 }

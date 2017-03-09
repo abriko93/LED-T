@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QGraphicsPixmapItem>
 #include <QSerialPort>
+#include <QRadioButton>
 #include <algorithm>
 
 #include "converters.h"
@@ -25,7 +26,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-QMap<QString, QSerialPort::BaudRate> supportedRates = {
+static QMap<QString, QSerialPort::BaudRate> supportedRates = {
     { "1200",    QSerialPort::Baud1200 },
     { "2400",    QSerialPort::Baud2400 },
     { "4800",    QSerialPort::Baud4800 },
@@ -36,7 +37,7 @@ QMap<QString, QSerialPort::BaudRate> supportedRates = {
     { "115200",  QSerialPort::Baud115200 },
 };
 
-QSerialPort::BaudRate getRate(QString const& rate)
+static QSerialPort::BaudRate getRate(QString const& rate)
 {
     auto r = supportedRates.find(rate);
     if (r != supportedRates.end())
@@ -77,6 +78,67 @@ void MainWindow::fillBaudRates()
     }
 }
 
+static QMap<QString, QSerialPort::DataBits> supportedDataBits = {
+    { "5", QSerialPort::Data5 },
+    { "6", QSerialPort::Data6 },
+    { "7", QSerialPort::Data7 },
+    { "8", QSerialPort::Data8 },
+};
+
+static QString findSelected(QGroupBox *box)
+{
+    for (QRadioButton *btn : box->findChildren<QRadioButton *>())
+    {
+        if (btn->isChecked())
+        {
+            return btn->text();
+        }
+    }
+    return "";
+}
+
+static QSerialPort::DataBits getDataBits(QGroupBox *box)
+{
+    QString name = findSelected(box);
+
+    auto it = supportedDataBits.find(name);
+    if (it != supportedDataBits.end())
+        return it.value();
+
+    qWarning() << "Invalid data bits field name:" << name;
+    return QSerialPort::Data8;
+}
+
+void MainWindow::fillGroupBox(QGroupBox *box, QList<QString> const &data)
+{
+    QLayout *l = box->layout();
+    for (QString const& item : data)
+    {
+        QWidget *w = new QRadioButton(item);
+        w->setObjectName(box->objectName() + "_" + item);
+
+        l->addWidget(w);
+    }
+}
+
+static QMap<QString, QSerialPort::StopBits> supportedStopBits = {
+    { "1", QSerialPort::OneStop },
+    { "1.5", QSerialPort::OneAndHalfStop, },
+    { "2", QSerialPort::TwoStop, }
+};
+
+static QSerialPort::StopBits getStopBits(QGroupBox *box)
+{
+    QString name = findSelected(box);
+
+    auto it = supportedStopBits.find(name);
+    if (it != supportedStopBits.end())
+        return it.value();
+
+    qWarning() << "Invalid stop bits field name:" << name;
+    return QSerialPort::OneStop;
+}
+
 void MainWindow::prepareForm()
 {
     ui->graphicsView->setScene(new QGraphicsScene(this));
@@ -85,6 +147,8 @@ void MainWindow::prepareForm()
     ui->imgWidthLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgWidthLineEdt));
 
     fillBaudRates();
+    fillGroupBox(ui->dataBitsGroupBox, supportedDataBits.keys());
+    fillGroupBox(ui->stopBitsGroupBox, supportedStopBits.keys());
 
     configurator.registerConfigurableWidget(ui->fromLineEdit);
     configurator.registerConfigurableWidget(ui->imgHeiLineEdt);
@@ -96,6 +160,8 @@ void MainWindow::prepareForm()
     configurator.registerConfigurableWidget(ui->portNameLineEdt);
     configurator.registerConfigurableWidget(ui->baudRateComboBox);
     configurator.registerConfigurableWidget(ui->portNameLineEdt);
+    configurator.registerConfigurableWidget(ui->dataBitsGroupBox);
+    configurator.registerConfigurableWidget(ui->stopBitsGroupBox);
 
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -269,4 +335,65 @@ void MainWindow::on_saveAsBinaryBtn_clicked()
     file.write(converter.content());
 
     QMessageBox::information(this, "Success!", "Saved!");
+}
+
+static QMap<QSerialPort::SerialPortError, QString> serialErrors = {
+    { QSerialPort::NoError, "no error" },
+    { QSerialPort::DeviceNotFoundError, "device not found" },
+    { QSerialPort::PermissionError, "bad permissions" },
+    { QSerialPort::OpenError, "can't open (already opened?)" },
+    { QSerialPort::NotOpenError, "device not opened" },
+    { QSerialPort::ParityError, "invalid parity" },
+    { QSerialPort::FramingError, "framing error" },
+    { QSerialPort::BreakConditionError, "break condition" },
+    { QSerialPort::WriteError, "write error" },
+    { QSerialPort::ReadError, "read error" },
+    { QSerialPort::ResourceError, "resource error" },
+    { QSerialPort::UnsupportedOperationError, "unsupported operation error" },
+    { QSerialPort::TimeoutError, "timeout error" },
+};
+
+static QString getSerialError(QSerialPort::SerialPortError err)
+{
+    auto it = serialErrors.find(err);
+    if (it == serialErrors.end())
+        return "unknown error " + QString::number(err);
+
+    return it.value();
+}
+
+void MainWindow::on_transferDataBtn_clicked()
+{
+    if (!serial.isNull())
+        serial->close();
+
+    serial = QSharedPointer<QSerialPort>(new QSerialPort(ui->portNameLineEdt->text()));
+    serial->setBaudRate(getRate(ui->baudRateComboBox->currentText()));
+    serial->setParity(QSerialPort::NoParity);
+
+    serial->setDataBits(getDataBits(ui->dataBitsGroupBox));
+    serial->setStopBits(getStopBits(ui->stopBitsGroupBox));
+
+    qDebug() << "Trying to open device...";
+    if (!serial->open(QIODevice::ReadWrite)) {
+        QMessageBox::critical(this, "Error", "Can't open serial device: " + getSerialError(serial->error()));
+        return;
+    }
+
+    connect(&*serial, SIGNAL(readyRead()), this, SLOT(onSerialReadyRead()));
+
+    qDebug() << "Writing bytes...";
+
+    GRBConverterV1 converter;
+    convertImage(getImage(), &converter);
+
+    qDebug() << serial->write(converter.content()) << "bytes written on serial. Waiting response";
+
+    QMessageBox::information(this, "Success", "Data sent");
+}
+
+void MainWindow::onSerialReadyRead()
+{
+    QByteArray data = serial->readAll();
+    qDebug() << "Data received from serial:" << data;
 }

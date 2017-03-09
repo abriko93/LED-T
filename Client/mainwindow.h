@@ -5,6 +5,8 @@
 #include <QLineEdit>
 #include <configurator.h>
 #include <QGraphicsPixmapItem>
+#include <QGroupBox>
+#include <QSerialPort>
 
 #include "image.h"
 
@@ -30,11 +32,16 @@ private slots:
     void on_saveAsTextBtn_clicked();
     void on_saveAsBinaryToolBtn_clicked();
     void on_saveAsBinaryBtn_clicked();
+    void on_transferDataBtn_clicked();
+
+private slots:
+    void onSerialReadyRead();
 
 protected:
     void setFile(QString title, QLineEdit *edt);
     void prepareForm();
     void fillBaudRates();
+    void fillGroupBox(QGroupBox *box, QList<QString> const& data);
 
     void reloadImage();
     void resizeImage();
@@ -47,6 +54,7 @@ private:
 
     Configurator configurator;
     QSharedPointer<QGraphicsPixmapItem> pixmapItem; // neede to render scene
+    QSharedPointer<QSerialPort> serial;
 };
 
 #endif // MAINWINDOW_H
