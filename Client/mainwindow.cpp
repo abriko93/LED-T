@@ -6,6 +6,8 @@
 #include <QFile>
 #include <QDebug>
 #include <QGraphicsPixmapItem>
+#include <QSerialPort>
+#include <algorithm>
 
 #include "converters.h"
 
@@ -23,12 +25,66 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+QMap<QString, QSerialPort::BaudRate> supportedRates = {
+    { "1200",    QSerialPort::Baud1200 },
+    { "2400",    QSerialPort::Baud2400 },
+    { "4800",    QSerialPort::Baud4800 },
+    { "9600",    QSerialPort::Baud9600 },
+    { "19200",   QSerialPort::Baud19200 },
+    { "38400",   QSerialPort::Baud38400 },
+    { "57600",   QSerialPort::Baud57600 },
+    { "115200",  QSerialPort::Baud115200 },
+};
+
+QSerialPort::BaudRate getRate(QString const& rate)
+{
+    auto r = supportedRates.find(rate);
+    if (r != supportedRates.end())
+    {
+        return r.value();
+    }
+
+    qWarning() << "Invalid rate:" << rate << ". Use 9600";
+    return QSerialPort::Baud9600;
+}
+
+void MainWindow::fillBaudRates()
+{
+    QList<QString> keys = supportedRates.keys();
+    std::sort(keys.begin(), keys.end(), [](QString a, QString b) {
+        bool ok = false;
+
+        int ia = a.toInt(&ok);
+        if (!ok)
+        {
+            qCritical() << "Invalid baud rate:" << a;
+            exit(1);
+        }
+
+        int ib = b.toInt(&ok);
+        if (!ok)
+        {
+            qCritical() << "Invalid baud rate:" << b;
+            exit(1);
+        }
+
+        return ia < ib;
+    });
+
+    for (QString const& k : keys)
+    {
+        ui->baudRateComboBox->addItem(k);
+    }
+}
+
 void MainWindow::prepareForm()
 {
     ui->graphicsView->setScene(new QGraphicsScene(this));
 
     ui->imgHeiLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgHeiLineEdt));
     ui->imgWidthLineEdt->setValidator(new QIntValidator(1, 1024, ui->imgWidthLineEdt));
+
+    fillBaudRates();
 
     configurator.registerConfigurableWidget(ui->fromLineEdit);
     configurator.registerConfigurableWidget(ui->imgHeiLineEdt);
@@ -37,6 +93,9 @@ void MainWindow::prepareForm()
     configurator.registerConfigurableWidget(ui->saveAsImgEdt);
     configurator.registerConfigurableWidget(ui->saveAsTextLineEdt);
     configurator.registerConfigurableWidget(ui->saveAsBinaryLineEdt);
+    configurator.registerConfigurableWidget(ui->portNameLineEdt);
+    configurator.registerConfigurableWidget(ui->baudRateComboBox);
+    configurator.registerConfigurableWidget(ui->portNameLineEdt);
 
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

@@ -21,6 +21,12 @@ void Configurator::registerConfigurableWidget(QSlider *slider)
     fillField(slider);
 }
 
+void Configurator::registerConfigurableWidget(QComboBox *box)
+{
+    connect(box, SIGNAL(currentIndexChanged(int)), this, SLOT(onComboBoxValueChanged(int)));
+    fillField(box);
+}
+
 void Configurator::onSliderValueChanged(int)
 {
     QSlider *senderObj = qobject_cast<QSlider *>(sender());
@@ -45,6 +51,18 @@ void Configurator::onEditChanged()
     storeFieldData(senderObj);
 }
 
+void Configurator::onComboBoxValueChanged(int idx)
+{
+    QComboBox *senderObj = qobject_cast<QComboBox *>(sender());
+    if (senderObj == NULL)
+    {
+        qWarning() << "Invalid combo box found in configurator:" << sender()->objectName();
+        return;
+    }
+
+    storeFieldData(senderObj);
+}
+
 QString getDefaultFieldDataOptName(const QObject *obj)
 {
     return "defaults/" + obj->objectName();
@@ -53,6 +71,9 @@ QString getDefaultFieldDataOptName(const QObject *obj)
 void Configurator::fillField(QSlider *slider)
 {
     QVariant data = settings.value(getDefaultFieldDataOptName(slider));
+    if (!data.isValid())
+        return;
+
     if (data.canConvert(QVariant::Int))
     {
         int intData = data.toInt();
@@ -73,6 +94,9 @@ void Configurator::fillField(QSlider *slider)
 void Configurator::fillField(QLineEdit *edt)
 {
     QVariant data = settings.value(getDefaultFieldDataOptName(edt));
+    if (!data.isValid())
+        return;
+
     if (data.canConvert(QVariant::String))
     {
         QString strData = data.toString();
@@ -92,6 +116,21 @@ void Configurator::fillField(QLineEdit *edt)
     }
 }
 
+void Configurator::fillField(QComboBox *box)
+{
+    QVariant data = settings.value(getDefaultFieldDataOptName(box));
+    if (!data.isValid())
+        return;
+
+    if (data.canConvert(QVariant::String))
+    {
+        QString strData = data.toString();
+        box->setCurrentText(strData);
+    } else {
+        qWarning() << "Can't set" << box->objectName() << "text. Value is " << data;
+    }
+}
+
 void Configurator::storeFieldData(const QLineEdit *edt)
 {
     settings.setValue(getDefaultFieldDataOptName(edt), edt->text());
@@ -100,4 +139,9 @@ void Configurator::storeFieldData(const QLineEdit *edt)
 void Configurator::storeFieldData(const QSlider *slider)
 {
     settings.setValue(getDefaultFieldDataOptName(slider), slider->value());
+}
+
+void Configurator::storeFieldData(const QComboBox *box)
+{
+    settings.setValue(getDefaultFieldDataOptName(box), box->currentText());
 }

@@ -26,18 +26,15 @@ private slots:
     void on_brightnessSlider_valueChanged(int value);
     void on_saveAsImgToolBtn_clicked();
     void on_saveAsImgBtn_clicked();
-
     void on_saveAsTextToolBtn_clicked();
-
     void on_saveAsTextBtn_clicked();
-
     void on_saveAsBinaryToolBtn_clicked();
-
     void on_saveAsBinaryBtn_clicked();
 
 protected:
     void setFile(QString title, QLineEdit *edt);
     void prepareForm();
+    void fillBaudRates();
 
     void reloadImage();
     void resizeImage();
