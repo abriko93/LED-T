@@ -62,6 +62,9 @@ void TextGRBConverterV1::prepareMetadata(const Image &img)
 
 void convertImage(const Image &img, BaseConverter *converter)
 {
+    if (img.originalImage().isNull())
+        return;
+
     converter->prepareMetadata(img);
     for (QColor const& px : img)
     {

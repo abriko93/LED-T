@@ -56,6 +56,7 @@ public:
     virtual void prepareMetadata(Image const& image);
 };
 
+#include <cstdlib>
 class GRBConverterV1 : public BaseConverter
 {
 public:
@@ -64,7 +65,15 @@ public:
     virtual void prepareMetadata(Image const& image);
     virtual void convertPixel(Image const& img, QColor const& px);
 
+    QByteArray content() const {
+        QByteArray newArray(data);
+        for (int i = 0; i < 512; ++i)
+            newArray.append('\0');
+        return newArray;
+    }
+    /*
     QByteArray const& content() const { return data; }
+    */
 
 private:
     QSharedPointer<QDataStream> stream;
