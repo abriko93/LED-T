@@ -33,6 +33,23 @@ QPixmap PixmapConverter::content() const
     return QPixmap::fromImage(data);
 }
 
+QPixmap VisualPixmapConverter::content() const
+{
+    QImage img = getImage();
+    for (int i = 1; i < img.height(); i += 2)
+    {
+        for (int j = 0; j < img.width() / 2; j++)
+        {
+            int k = img.width() - j - 1;
+            QRgb px = img.pixel(j, i);
+            img.setPixel(j, i, img.pixel(k, i));
+            img.setPixel(k, i, px);
+        }
+    }
+
+    return QPixmap::fromImage(img);
+}
+
 SimpleTextGRBConverter::SimpleTextGRBConverter()
     : BaseConverter()
     , stream(new QString) // XXX: Leak ?

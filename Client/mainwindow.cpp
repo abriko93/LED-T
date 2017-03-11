@@ -10,8 +10,6 @@
 #include <QRadioButton>
 #include <algorithm>
 
-#include "converters.h"
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -162,6 +160,7 @@ void MainWindow::prepareForm()
     configurator.registerConfigurableWidget(ui->portNameLineEdt);
     configurator.registerConfigurableWidget(ui->dataBitsGroupBox);
     configurator.registerConfigurableWidget(ui->stopBitsGroupBox);
+    configurator.registerConfigurableWidget(ui->imgTypeGroupBox);
 
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -171,6 +170,8 @@ void MainWindow::prepareForm()
     connect(ui->fromLineEdit, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
     connect(ui->imgHeiLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
     connect(ui->imgWidthLineEdt, SIGNAL(editingFinished()), this, SLOT(on_reloadImageNeeded()));
+    connect(ui->imgToDisplayRadioBtn, SIGNAL(clicked(bool)), this, SLOT(on_reloadImageNeeded2(bool)));
+    connect(ui->imgToSendRadioBtn, SIGNAL(clicked(bool)), this, SLOT(on_reloadImageNeeded2(bool)));
 }
 
 void MainWindow::on_fromToolBtn_clicked()
@@ -211,6 +212,17 @@ Image MainWindow::getImage()
     return img;
 }
 
+QSharedPointer<PixmapConverter> MainWindow::getConverter()
+{
+    PixmapConverter *converter = NULL;
+    if (ui->imgToSendRadioBtn->isChecked())
+        converter = new PixmapConverter();
+    else if (ui->imgToDisplayRadioBtn->isChecked())
+        converter = new VisualPixmapConverter();
+
+    return QSharedPointer<PixmapConverter>(converter);
+}
+
 void MainWindow::reloadImage()
 {
     QList<QGraphicsItem *> items = ui->graphicsView->scene()->items();
@@ -219,11 +231,16 @@ void MainWindow::reloadImage()
         ui->graphicsView->scene()->removeItem(item);
     }
 
-    PixmapConverter converter;
-    convertImage(getImage(), &converter);
+    QSharedPointer<PixmapConverter> converter = getConverter();
+    if (converter.isNull()) {
+        qWarning() << "Converter not set";
+        return;
+    }
 
-    pixmapItem = QSharedPointer<QGraphicsPixmapItem>(new QGraphicsPixmapItem(converter.content()));
-    ui->graphicsView->scene()->addItem(&*pixmapItem);
+    convertImage(getImage(), converter.data());
+
+    pixmapItem = QSharedPointer<QGraphicsPixmapItem>(new QGraphicsPixmapItem(converter->content()));
+    ui->graphicsView->scene()->addItem(pixmapItem.data());
 
     resizeImage();
 }
@@ -236,12 +253,20 @@ void MainWindow::resizeEvent(QResizeEvent *event)
 
 void MainWindow::resizeImage()
 {
+    if (pixmapItem.isNull())
+        return;
+
     QTransform transformation;
     transformation.scale((qreal)ui->graphicsView->width() / (qreal)pixmapItem->boundingRect().width(),
                          (qreal)ui->graphicsView->height() / (qreal)pixmapItem->boundingRect().height());
 
     pixmapItem->setTransform(transformation);
     ui->graphicsView->setSceneRect(ui->graphicsView->rect());
+}
+
+void MainWindow::on_reloadImageNeeded2(bool)
+{
+    reloadImage();
 }
 
 void MainWindow::on_reloadImageNeeded()

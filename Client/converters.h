@@ -20,15 +20,27 @@ class PixmapConverter : public BaseConverter
 {
 public:
     PixmapConverter();
+    virtual ~PixmapConverter() {}
 
     virtual void prepareMetadata(Image const& image);
     virtual void convertPixel(Image const& img, QColor const& px);
 
-    QPixmap content() const;
+    virtual QPixmap content() const;
+
+protected:
+    QImage const& getImage() const { return data; }
 
 private:
     int i, j;
     QImage data;
+};
+
+class VisualPixmapConverter : public PixmapConverter
+{
+public:
+    VisualPixmapConverter() : PixmapConverter() {}
+
+    virtual QPixmap content() const;
 };
 
 class SimpleTextGRBConverter : public BaseConverter

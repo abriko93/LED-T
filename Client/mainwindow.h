@@ -9,6 +9,7 @@
 #include <QSerialPort>
 
 #include "image.h"
+#include "converters.h"
 
 namespace Ui {
 class MainWindow;
@@ -24,7 +25,6 @@ public:
 
 private slots:
     void on_fromToolBtn_clicked();
-    void on_reloadImageNeeded();
     void on_brightnessSlider_valueChanged(int value);
     void on_saveAsImgToolBtn_clicked();
     void on_saveAsImgBtn_clicked();
@@ -36,6 +36,8 @@ private slots:
 
 private slots:
     void onSerialReadyRead();
+    void on_reloadImageNeeded();
+    void on_reloadImageNeeded2(bool);
 
 protected:
     void setFile(QString title, QLineEdit *edt);
@@ -46,6 +48,7 @@ protected:
     void reloadImage();
     void resizeImage();
     Image getImage();
+    QSharedPointer<PixmapConverter> getConverter();
 
     virtual void resizeEvent(QResizeEvent *event);
 

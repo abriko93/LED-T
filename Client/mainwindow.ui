@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>782</width>
-    <height>431</height>
+    <height>523</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -55,7 +55,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -92,6 +92,29 @@
            </widget>
           </item>
          </layout>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="imgTypeGroupBox">
+          <property name="title">
+           <string>Тип изображения</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QRadioButton" name="imgToDisplayRadioBtn">
+             <property name="text">
+              <string>Изображение для визуализации</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="imgToSendRadioBtn">
+             <property name="text">
+              <string>Изображение для передачи</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
          <widget class="QGraphicsView" name="graphicsView"/>
