@@ -413,7 +413,10 @@ void MainWindow::on_transferDataBtn_clicked()
     convertImage(getImage(), &converter);
 
     qDebug() << serial->write(converter.content()) << "bytes written on serial. Waiting response";
+
+    qDebug() << serial->bytesToWrite() << "bytes waiting to be written in buffer";
     serial->flush();
+    qDebug() << serial->bytesToWrite() << "bytes waiting to be written in buffer";
 
     QMessageBox::information(this, "Success", "Data sent");
 }
