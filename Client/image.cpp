@@ -74,28 +74,6 @@ QColor colorIterator::operator *() const
 {
     int pxx = i, pxy = j;
 
-    int xMargin = (img->width() - img->originalImage().width()) / 2; // int devision
-    if (xMargin > 0)
-    {
-        // image is smaller then needed. Center it
-
-        // left margin
-        if (pxx < xMargin)
-            return defaultColor;
-
-        // right margin
-        if (pxx > img->originalImage().width() + xMargin - 1)
-            return defaultColor;
-
-        pxx -= xMargin; // real image here
-    } else if (xMargin < 0) {
-        // image is larger than needed. Crop it
-        pxx -= xMargin; // negative xMargin here => minus required
-    }
-
-    if (pxx == img->originalImage().width())
-        return defaultColor; // integer devision fixup
-
     int yMargin = (img->height() - img->originalImage().height()) / 2; // int devision
     if (yMargin > 0)
     {
@@ -116,6 +94,34 @@ QColor colorIterator::operator *() const
     }
 
     if (pxy == img->originalImage().height())
+        return defaultColor; // integer devision fixup
+
+    bool needReverseLine = pxy % 2 == 1;
+
+    int xMargin = (img->width() - img->originalImage().width()) / 2; // int devision
+    if (xMargin > 0)
+    {
+        // image is smaller then needed. Center it
+
+        if (needReverseLine) {
+            pxx = img->width() - pxx - 1;
+        }
+
+        // left margin
+        if (pxx < xMargin)
+            return defaultColor;
+
+        // right margin
+        if (pxx > img->originalImage().width() + xMargin - 1)
+            return defaultColor;
+
+        pxx -= xMargin; // real image here
+    } else if (xMargin < 0) {
+        // image is larger than needed. Crop it
+        pxx -= xMargin; // negative xMargin here => minus required
+    }
+
+    if (pxx == img->originalImage().width())
         return defaultColor; // integer devision fixup
 
     return img->originalImage().toImage().pixel(pxx, pxy);
