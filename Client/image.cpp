@@ -96,16 +96,15 @@ QColor colorIterator::operator *() const
     if (pxy == img->originalImage().height())
         return defaultColor; // integer devision fixup
 
-    bool needReverseLine = pxy % 2 == 1;
+    if (pxy % 2 == 1) {
+        // Re need to reverse line
+        pxx = img->width() - pxx - 1;
+    }
 
     int xMargin = (img->width() - img->originalImage().width()) / 2; // int devision
     if (xMargin > 0)
     {
         // image is smaller then needed. Center it
-
-        if (needReverseLine) {
-            pxx = img->width() - pxx - 1;
-        }
 
         // left margin
         if (pxx < xMargin)
