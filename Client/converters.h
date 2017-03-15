@@ -60,15 +60,6 @@ private:
     QTextStream stream;
 };
 
-class TextGRBConverterV1 : public SimpleTextGRBConverter
-{
-public:
-    TextGRBConverterV1();
-
-    virtual void prepareMetadata(Image const& image);
-};
-
-#include <cstdlib>
 class GRBConverterV1 : public BaseConverter
 {
 public:
@@ -87,9 +78,23 @@ public:
     QByteArray const& content() const { return data; }
     */
 
+    virtual ~GRBConverterV1() {}
+
+protected:
+    QDataStream &getStream() { return *stream; }
+    void cleanup();
+
 private:
     QSharedPointer<QDataStream> stream;
     QByteArray data;
+};
+
+class GRBConverterV2 : public GRBConverterV1
+{
+public:
+    GRBConverterV2() : GRBConverterV1() {}
+
+    virtual void prepareMetadata(Image const& image);
 };
 
 void convertImage(Image const& img, BaseConverter *converter);

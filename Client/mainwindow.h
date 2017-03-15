@@ -39,6 +39,10 @@ private slots:
     void on_reloadImageNeeded();
     void on_reloadImageNeeded2(bool);
 
+    void on_saveAsDinaryV2ToolBtn_clicked();
+
+    void on_saveAsBinaryV2PushBtn_clicked();
+
 protected:
     void setFile(QString title, QLineEdit *edt);
     void prepareForm();

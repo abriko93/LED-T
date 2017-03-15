@@ -161,6 +161,7 @@ void MainWindow::prepareForm()
     configurator.registerConfigurableWidget(ui->dataBitsGroupBox);
     configurator.registerConfigurableWidget(ui->stopBitsGroupBox);
     configurator.registerConfigurableWidget(ui->imgTypeGroupBox);
+    configurator.registerConfigurableWidget(ui->saveAsBinaryV2LineEdt);
 
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -409,7 +410,7 @@ void MainWindow::on_transferDataBtn_clicked()
 
     qDebug() << "Writing bytes...";
 
-    GRBConverterV1 converter;
+    GRBConverterV2 converter;
     convertImage(getImage(), &converter);
 
     qDebug() << serial->write(converter.content()) << "bytes written on serial. Waiting response";
@@ -425,4 +426,33 @@ void MainWindow::onSerialReadyRead()
 {
     QByteArray data = serial->readAll();
     qDebug() << "Data received from serial:" << data;
+}
+
+void MainWindow::on_saveAsDinaryV2ToolBtn_clicked()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Save as binary");
+    ui->saveAsBinaryV2LineEdt->setText(fileName);
+}
+
+void MainWindow::on_saveAsBinaryV2PushBtn_clicked()
+{
+    if (ui->saveAsBinaryV2LineEdt->text() == "")
+    {
+        QMessageBox::warning(this, "Error", "Can't save: empty file name!");
+        return;
+    }
+
+    GRBConverterV2 converter;
+    convertImage(getImage(), &converter);
+
+    QFile file(ui->saveAsBinaryV2LineEdt->text());
+    if (!file.open(QIODevice::WriteOnly))
+    {
+        QMessageBox::critical(this, "Error", "Can't open file `" + file.fileName() + "`: " + file.errorString());
+        return;
+    }
+
+    file.write(converter.content());
+
+    QMessageBox::information(this, "Success!", "Saved!");
 }
