@@ -1,5 +1,5 @@
 [DebugChecksum]
-Checksum=-290925899
+Checksum=873495289
 [Stack]
 FillEnabled=0
 OverflowWarningsEnabled=1
@@ -60,7 +60,7 @@ Exclusions=
 [Disassemble mode]
 mode=0
 [Breakpoints2]
-Bp0=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\..\..\..\WINDOWS\System32}.1076.1" 0 0 1 "" 0 "" 0
+Bp0=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\..\..\WINDOWS\System32}.1076.1" 0 0 1 "" 0 "" 0
 Bp1=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.35.1" 0 0 1 "" 0 "" 0
 Bp2=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.44.3" 0 0 1 "" 0 "" 0
 Bp3=_ 0 "EMUL_CODE" "{$PROJ_DIR$\..\Проекты IAR\LED-T\main.c}.46.3" 0 0 1 "" 0 "" 0
